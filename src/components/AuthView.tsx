@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { isValidPhone, normalizePhone } from '../lib/phone';
 import { Header } from './Header';
 
 type AuthMode = 'login' | 'register' | 'forgot';
@@ -8,6 +9,7 @@ export function AuthView() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,10 +55,16 @@ export function AuthView() {
 
     const cleanFirst = firstName.trim();
     const cleanLast = lastName.trim();
+    const cleanPhone = normalizePhone(phone);
     const cleanEmail = email.trim();
 
     if (!cleanFirst || !cleanLast) {
       setError('Introduce tu nombre y apellidos.');
+      return;
+    }
+
+    if (!isValidPhone(cleanPhone)) {
+      setError('Introduce un número de teléfono válido (al menos 9 dígitos).');
       return;
     }
 
@@ -80,6 +88,7 @@ export function AuthView() {
           data: {
             first_name: cleanFirst,
             last_name: cleanLast,
+            phone: cleanPhone,
           },
         },
       });
@@ -87,6 +96,8 @@ export function AuthView() {
       if (signUpError) {
         if (signUpError.message.toLowerCase().includes('already registered')) {
           setError('Ya existe una cuenta registrada con ese correo electrónico.');
+        } else if (signUpError.message.toLowerCase().includes('phone')) {
+          setError('Ya existe una cuenta registrada con ese número de teléfono.');
         } else {
           setError('No se pudo completar el registro. Revisa los datos.');
         }
@@ -261,6 +272,25 @@ export function AuthView() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                   />
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label" htmlFor="reg-phone">
+                    Teléfono móvil
+                  </label>
+                  <input
+                    id="reg-phone"
+                    type="tel"
+                    className="form-input"
+                    required
+                    autoComplete="tel"
+                    placeholder="Ej. 612 345 678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                  <p className="field-hint">
+                    Sirve para vincularte automáticamente si algún amigo te apunta como acompañante.
+                  </p>
                 </div>
 
                 <div className="form-field">

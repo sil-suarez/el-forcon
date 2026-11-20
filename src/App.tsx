@@ -14,6 +14,7 @@ import { ResetPasswordView } from './components/ResetPasswordView';
 import { WeekSelector } from './components/WeekSelector';
 import { DayBlock } from './components/DayBlock';
 import { CancelConfirmModal } from './components/CancelConfirmModal';
+import { CompanionModal } from './components/CompanionModal';
 import { MyRegistrationsView } from './components/MyRegistrationsView';
 import { AdminPanel } from './components/AdminPanel';
 import { ToastBanner, ToastMessage } from './components/ToastBanner';
@@ -21,6 +22,13 @@ import { ToastBanner, ToastMessage } from './components/ToastBanner';
 type MainTab = 'week' | 'mine' | 'admin';
 
 interface PendingCancelState {
+  matchDate: string;
+  matchNumber: 1 | 2;
+  registrationId?: string;
+  targetName?: string;
+}
+
+interface PendingCompanionState {
   matchDate: string;
   matchNumber: 1 | 2;
 }
@@ -44,6 +52,9 @@ export function App() {
   const [pendingCancel, setPendingCancel] =
     useState<PendingCancelState | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [pendingCompanion, setPendingCompanion] =
+    useState<PendingCompanionState | null>(null);
+  const [companionLoading, setCompanionLoading] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [myRefreshCounter, setMyRefreshCounter] = useState(0);
   const toastTimerRef = useRef<number | null>(null);
@@ -107,9 +118,64 @@ export function App() {
     }
   };
 
+  // Abrir modal para apuntar a un acompañante
+  const handleRequestCompanion = (matchDate: string, matchNumber: 1 | 2) => {
+    setPendingCompanion({ matchDate, matchNumber });
+  };
+
+  // Ejecutar RPC de inscripción de acompañante
+  const handleConfirmCompanion = async (payload: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  }) => {
+    if (!pendingCompanion || companionLoading) return;
+    setCompanionLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc('register_companion', {
+        p_match_date: pendingCompanion.matchDate,
+        p_first_name: payload.firstName,
+        p_last_name: payload.lastName,
+        p_phone: payload.phone,
+        p_expected_match_number: pendingCompanion.matchNumber,
+      });
+
+      if (error) {
+        showToast(
+          'error',
+          'No se ha podido completar la operación. Inténtalo de nuevo.'
+        );
+        return;
+      }
+
+      const result = data as RpcActionResponse;
+      if (result.success) {
+        setPendingCompanion(null);
+        showToast('success', result.message);
+        setMyRefreshCounter((c) => c + 1);
+      } else {
+        showToast('error', result.message);
+      }
+      await reloadWeek();
+    } catch {
+      showToast(
+        'error',
+        'No se ha podido completar la operación. Inténtalo de nuevo.'
+      );
+    } finally {
+      setCompanionLoading(false);
+    }
+  };
+
   // Paso 1 baja: abrir ventana de confirmación explícita
-  const handleRequestCancel = (matchDate: string, matchNumber: 1 | 2) => {
-    setPendingCancel({ matchDate, matchNumber });
+  const handleRequestCancel = (
+    matchDate: string,
+    matchNumber: 1 | 2,
+    registrationId?: string,
+    targetName?: string
+  ) => {
+    setPendingCancel({ matchDate, matchNumber, registrationId, targetName });
   };
 
   // Paso 2 baja: ejecutar RPC atómico solo tras confirmación explícita
@@ -120,6 +186,7 @@ export function App() {
     try {
       const { data, error } = await supabase.rpc('cancel_registration', {
         p_match_date: pendingCancel.matchDate,
+        p_registration_id: pendingCancel.registrationId ?? null,
       });
 
       if (error) {
@@ -133,7 +200,7 @@ export function App() {
       const result = data as RpcActionResponse;
       if (result.success) {
         setPendingCancel(null);
-        showToast('success', 'Te has desapuntado correctamente.');
+        showToast('success', result.message);
         setMyRefreshCounter((c) => c + 1);
       } else {
         showToast('error', result.message);
@@ -261,6 +328,7 @@ export function App() {
                     day={day}
                     busyDate={busyDate}
                     onRegister={handleRegister}
+                    onRequestCompanion={handleRequestCompanion}
                     onRequestCancel={handleRequestCancel}
                   />
                 ))}
@@ -291,10 +359,22 @@ export function App() {
         )}
       </main>
 
+      <CompanionModal
+        isOpen={pendingCompanion !== null}
+        matchDate={pendingCompanion?.matchDate ?? ''}
+        matchNumber={pendingCompanion?.matchNumber ?? 1}
+        loading={companionLoading}
+        onClose={() => {
+          if (!companionLoading) setPendingCompanion(null);
+        }}
+        onSubmit={handleConfirmCompanion}
+      />
+
       <CancelConfirmModal
         isOpen={pendingCancel !== null}
         matchDate={pendingCancel?.matchDate ?? ''}
         matchNumber={pendingCancel?.matchNumber ?? 1}
+        targetName={pendingCancel?.targetName ?? null}
         loading={cancelLoading}
         onKeepSpot={() => {
           if (!cancelLoading) setPendingCancel(null);

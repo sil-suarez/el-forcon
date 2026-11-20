@@ -5,6 +5,7 @@ interface CancelConfirmModalProps {
   isOpen: boolean;
   matchDate: string;
   matchNumber: 1 | 2;
+  targetName?: string | null;
   loading: boolean;
   onKeepSpot: () => void;
   onConfirmCancel: () => void;
@@ -14,11 +15,13 @@ export function CancelConfirmModal({
   isOpen,
   matchDate,
   matchNumber,
+  targetName,
   loading,
   onKeepSpot,
   onConfirmCancel,
 }: CancelConfirmModalProps) {
   const keepButtonRef = useRef<HTMLButtonElement | null>(null);
+  const isCompanion = Boolean(targetName);
 
   useEffect(() => {
     if (isOpen) {
@@ -53,7 +56,9 @@ export function CancelConfirmModal({
     >
       <div className="modal-dialog">
         <h3 id="cancel-modal-title" className="modal-title">
-          ¿Seguro que quieres desapuntarte?
+          {isCompanion
+            ? `¿Seguro que quieres dar de baja a ${targetName}?`
+            : '¿Seguro que quieres desapuntarte?'}
         </h3>
 
         <p className="modal-text" style={{ fontWeight: 700, color: '#14532d' }}>
@@ -63,20 +68,21 @@ export function CancelConfirmModal({
         {matchNumber === 1 ? (
           <>
             <p className="modal-text">
-              Si cancelas tu inscripción, otra persona podrá ocupar tu plaza y
-              avanzar al Partido 1.
+              {isCompanion
+                ? 'Si cancelas esta inscripción, otra persona podrá ocupar su plaza y avanzar al Partido 1.'
+                : 'Si cancelas tu inscripción, otra persona podrá ocupar tu plaza y avanzar al Partido 1.'}
             </p>
             <p className="modal-text">
-              Si después quieres volver a apuntarte, perderás tu posición actual
-              en la cola y podrías acabar en el Partido 2 o quedarte sin plaza si
-              los partidos se completan.
+              {isCompanion
+                ? 'Si después quieres volver a apuntarle, perderá su posición actual en la cola y podría acabar en el Partido 2 o quedarse sin plaza.'
+                : 'Si después quieres volver a apuntarte, perderás tu posición actual en la cola y podrías acabar en el Partido 2 o quedarte sin plaza si los partidos se completan.'}
             </p>
           </>
         ) : (
           <p className="modal-text">
-            Si cancelas tu inscripción, liberarás tu plaza del Partido 2. Si
-            después quieres volver a apuntarte, tendrás que hacerlo de nuevo y
-            ocuparás la última posición disponible.
+            {isCompanion
+              ? 'Si cancelas esta inscripción, se liberará su plaza del Partido 2 y ocupará la última posición si vuelves a apuntarle.'
+              : 'Si cancelas tu inscripción, liberarás tu plaza del Partido 2. Si después quieres volver a apuntarte, tendrás que hacerlo de nuevo y ocuparás la última posición disponible.'}
           </p>
         )}
 
@@ -88,7 +94,7 @@ export function CancelConfirmModal({
             disabled={loading}
             onClick={onKeepSpot}
           >
-            NO, MANTENER MI PLAZA
+            {isCompanion ? 'NO, MANTENER SU PLAZA' : 'NO, MANTENER MI PLAZA'}
           </button>
 
           <button
@@ -97,7 +103,11 @@ export function CancelConfirmModal({
             disabled={loading}
             onClick={onConfirmCancel}
           >
-            {loading ? 'Procesando baja...' : 'SÍ, DESAPUNTARME'}
+            {loading
+              ? 'Procesando baja...'
+              : isCompanion
+              ? 'SÍ, DAR DE BAJA'
+              : 'SÍ, DESAPUNTARME'}
           </button>
         </div>
       </div>

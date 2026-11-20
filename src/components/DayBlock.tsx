@@ -6,13 +6,20 @@ interface DayBlockProps {
   day: DaySchedule;
   busyDate: string | null;
   onRegister: (matchDate: string, matchNumber: 1 | 2) => void;
-  onRequestCancel: (matchDate: string, matchNumber: 1 | 2) => void;
+  onRequestCompanion: (matchDate: string, matchNumber: 1 | 2) => void;
+  onRequestCancel: (
+    matchDate: string,
+    matchNumber: 1 | 2,
+    registrationId?: string,
+    targetName?: string
+  ) => void;
 }
 
 export function DayBlock({
   day,
   busyDate,
   onRegister,
+  onRequestCompanion,
   onRequestCancel,
 }: DayBlockProps) {
   const isBusy = busyDate === day.date;
@@ -39,7 +46,10 @@ export function DayBlock({
           isPastDay={day.isPast}
           busyAction={isBusy}
           onRegister={(num) => onRegister(day.date, num)}
-          onRequestCancel={(num) => onRequestCancel(day.date, num)}
+          onRequestCompanion={(num) => onRequestCompanion(day.date, num)}
+          onRequestCancel={(num, regId, targetName) =>
+            onRequestCancel(day.date, num, regId, targetName)
+          }
         />
         <MatchCard
           matchNumber={2}
@@ -49,7 +59,10 @@ export function DayBlock({
           isPastDay={day.isPast}
           busyAction={isBusy}
           onRegister={(num) => onRegister(day.date, num)}
-          onRequestCancel={(num) => onRequestCancel(day.date, num)}
+          onRequestCompanion={(num) => onRequestCompanion(day.date, num)}
+          onRequestCancel={(num, regId, targetName) =>
+            onRequestCancel(day.date, num, regId, targetName)
+          }
         />
       </div>
     </section>

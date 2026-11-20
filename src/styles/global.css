@@ -433,6 +433,37 @@ select:focus-visible {
   border: 1px solid #86efac;
 }
 
+.player-slot-companion {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  font-weight: 700;
+  border: 1px solid #bfdbfe;
+}
+
+.slot-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.slot-name {
+  word-break: break-word;
+}
+
+.slot-meta {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.slot-action-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
 .player-slot-empty {
   background-color: #ffffff;
   color: var(--text-muted);
@@ -487,6 +518,27 @@ select:focus-visible {
 }
 
 .btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 16px;
+  border: 2px solid var(--green-dark);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  color: var(--green-dark);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--green-soft-bg);
+}
+
+.btn-secondary:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
@@ -697,6 +749,13 @@ select:focus-visible {
 
 .form-input:focus {
   border-color: var(--green-dark);
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .alert-box {

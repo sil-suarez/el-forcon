@@ -26,7 +26,7 @@ export function useAuth(): AuthState {
     const [{ data: profileData }, { data: roleData }] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, first_name, last_name, is_active, created_at')
+        .select('id, first_name, last_name, phone, is_active, created_at')
         .eq('id', userId)
         .maybeSingle(),
       supabase

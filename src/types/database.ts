@@ -4,6 +4,7 @@ export interface Profile {
   id: string;
   first_name: string;
   last_name: string;
+  phone: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -19,10 +20,18 @@ export interface MatchRow {
 export interface RegistrationRow {
   id: string;
   match_date: string;
-  user_id: string;
+  user_id: string | null;
+  registered_by: string | null;
+  guest_first_name: string | null;
+  guest_last_name: string | null;
   registered_at: string;
   queue_seq: number;
   profiles: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  registrant: {
     id: string;
     first_name: string;
     last_name: string;
@@ -31,12 +40,16 @@ export interface RegistrationRow {
 
 export interface QueuePlayer {
   registrationId: string;
-  userId: string;
+  userId: string | null;
+  registeredBy: string | null;
+  registeredByName: string | null;
   fullName: string;
   position: number; // 1..8
   matchNumber: 1 | 2;
   registeredAt: string;
   isCurrentUser: boolean;
+  isCompanionByMe: boolean;
+  isGuestAccount: boolean;
 }
 
 export interface DaySchedule {
@@ -62,6 +75,7 @@ export interface AdminUserRow {
   first_name: string;
   last_name: string;
   email: string;
+  phone: string | null;
   is_active: boolean;
   role: UserRole;
   email_confirmed: boolean;

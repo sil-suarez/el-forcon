@@ -1,15 +1,26 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-  DaySchedule,
-  QueuePlayer,
-  RegistrationRow,
-} from '../types/database';
+import { DaySchedule, QueuePlayer } from '../types/database';
 import {
   addDaysISO,
   getMadridTodayISO,
   getWeekdaysFromMonday,
 } from '../lib/dates';
+
+interface DailyQueueRow {
+  id: string;
+  match_date: string;
+  user_id: string | null;
+  registered_by: string | null;
+  registered_at: string;
+  queue_seq: number;
+  first_name: string;
+  last_name: string;
+  registrant_first_name: string | null;
+  registrant_last_name: string | null;
+  queue_position: number;
+  match_number: 1 | 2;
+}
 
 interface UseWeekMatchesResult {
   days: DaySchedule[];
@@ -51,37 +62,26 @@ export function useWeekMatches(
           throw ensureError;
         }
 
-        // 2. Obtener todas las inscripciones de la semana ordenadas cronológicamente
-        const { data: regData, error: regError } = await supabase
-          .from('registrations')
+        // 2. Obtener todas las inscripciones de la semana desde la vista ordenada
+        const { data: queueData, error: queueError } = await supabase
+          .from('daily_queue_view')
           .select(
-            `
-            id,
-            match_date,
-            user_id,
-            registered_at,
-            queue_seq,
-            profiles (
-              id,
-              first_name,
-              last_name
-            )
-          `
+            'id, match_date, user_id, registered_by, registered_at, queue_seq, first_name, last_name, registrant_first_name, registrant_last_name, queue_position, match_number'
           )
           .gte('match_date', mondayISO)
           .lte('match_date', fridayISO)
-          .order('registered_at', { ascending: true })
-          .order('queue_seq', { ascending: true });
+          .order('match_date', { ascending: true })
+          .order('queue_position', { ascending: true });
 
-        if (regError) {
-          throw regError;
+        if (queueError) {
+          throw queueError;
         }
 
-        const registrations = (regData ?? []) as unknown as RegistrationRow[];
+        const rows = (queueData ?? []) as DailyQueueRow[];
 
         // Agrupar por día respetando la cola cronológica
-        const byDate = new Map<string, RegistrationRow[]>();
-        for (const row of registrations) {
+        const byDate = new Map<string, DailyQueueRow[]>();
+        for (const row of rows) {
           const list = byDate.get(row.match_date) ?? [];
           list.push(row);
           byDate.set(row.match_date, list);
@@ -90,20 +90,28 @@ export function useWeekMatches(
         const schedules: DaySchedule[] = weekdays.map((dateISO) => {
           const dayRows = byDate.get(dateISO) ?? [];
           const queuePlayers: QueuePlayer[] = dayRows.map((row, idx) => {
-            const position = idx + 1;
+            const position = row.queue_position ?? idx + 1;
             const matchNumber: 1 | 2 = position <= 4 ? 1 : 2;
-            const firstName = row.profiles?.first_name ?? 'Jugador';
-            const lastName = row.profiles?.last_name ?? '';
-            const fullName = `${firstName} ${lastName}`.trim();
+            const fullName = `${row.first_name ?? 'Jugador'} ${row.last_name ?? ''}`.trim();
+            const registeredByName = row.registrant_first_name
+              ? `${row.registrant_first_name} ${row.registrant_last_name ?? ''}`.trim()
+              : null;
+            const isCurrentUser = row.user_id === currentUserId;
+            const isCompanionByMe =
+              !isCurrentUser && row.registered_by === currentUserId;
 
             return {
               registrationId: row.id,
               userId: row.user_id,
+              registeredBy: row.registered_by,
+              registeredByName,
               fullName,
               position,
               matchNumber,
               registeredAt: row.registered_at,
-              isCurrentUser: row.user_id === currentUserId,
+              isCurrentUser,
+              isCompanionByMe,
+              isGuestAccount: row.user_id === null,
             };
           });
 

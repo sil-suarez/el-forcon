@@ -8,7 +8,12 @@ interface MatchCardProps {
   isPastDay: boolean;
   busyAction: boolean;
   onRegister: (matchNumber: 1 | 2) => void;
-  onRequestCancel: (matchNumber: 1 | 2) => void;
+  onRequestCompanion: (matchNumber: 1 | 2) => void;
+  onRequestCancel: (
+    matchNumber: 1 | 2,
+    registrationId?: string,
+    targetName?: string
+  ) => void;
 }
 
 export function MatchCard({
@@ -19,6 +24,7 @@ export function MatchCard({
   isPastDay,
   busyAction,
   onRegister,
+  onRequestCompanion,
   onRequestCancel,
 }: MatchCardProps) {
   const isUserInThisMatch = currentUserMatch === matchNumber;
@@ -27,6 +33,7 @@ export function MatchCard({
 
   const isMatch2Closed = matchNumber === 2 && totalDayRegistered < 4;
   const isFull = players.length >= 4;
+  const canAddCompanion = !isPastDay && !isMatch2Closed && !isFull;
 
   let statusLabel = 'Disponible';
   let statusClass = 'status-available';
@@ -77,20 +84,51 @@ export function MatchCard({
               {slots.map((slotIndex) => {
                 const player = players[slotIndex];
                 if (player) {
+                  const isCompanionRegisteredByOther =
+                    player.registeredBy &&
+                    player.userId !== player.registeredBy &&
+                    player.registeredByName;
+
                   return (
                     <li
                       key={player.registrationId}
                       className={`player-slot ${
                         player.isCurrentUser
                           ? 'player-slot-me'
+                          : player.isCompanionByMe
+                          ? 'player-slot-companion'
                           : 'player-slot-filled'
                       }`}
                     >
                       <span className="slot-number">{slotIndex + 1}</span>
-                      <span>
-                        {player.fullName}
-                        {player.isCurrentUser ? ' (Tú)' : ''}
-                      </span>
+                      <div className="slot-content">
+                        <span className="slot-name">
+                          {player.fullName}
+                          {player.isCurrentUser ? ' (Tú)' : ''}
+                          {player.isCompanionByMe ? ' (Tu acompañante)' : ''}
+                        </span>
+                        {isCompanionRegisteredByOther && (
+                          <span className="slot-meta">
+                            Apuntado por {player.registeredByName}
+                          </span>
+                        )}
+                      </div>
+                      {!isPastDay && player.isCompanionByMe && (
+                        <button
+                          type="button"
+                          className="btn-small btn-small-danger slot-action-btn"
+                          disabled={busyAction}
+                          onClick={() =>
+                            onRequestCancel(
+                              matchNumber,
+                              player.registrationId,
+                              player.fullName
+                            )
+                          }
+                        >
+                          Dar de baja
+                        </button>
+                      )}
                     </li>
                   );
                 }
@@ -135,6 +173,17 @@ export function MatchCard({
             onClick={() => onRegister(matchNumber)}
           >
             {busyAction ? 'Procesando...' : 'APUNTARME'}
+          </button>
+        )}
+
+        {canAddCompanion && (
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={busyAction}
+            onClick={() => onRequestCompanion(matchNumber)}
+          >
+            APUNTAR A UN ACOMPAÑANTE
           </button>
         )}
       </div>

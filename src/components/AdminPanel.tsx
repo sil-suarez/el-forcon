@@ -10,6 +10,7 @@ import {
   formatFullDateSpanish,
   formatMadridTimestamp,
 } from '../lib/dates';
+import { formatPhoneDisplay } from '../lib/phone';
 import { WeekSelector } from './WeekSelector';
 
 interface AdminPanelProps {
@@ -112,12 +113,17 @@ export function AdminPanel({
     }
   };
 
-  const handleRemovePlayer = async (matchDate: string, userId: string) => {
-    setBusyKey(`rem-${matchDate}-${userId}`);
+  const handleRemovePlayer = async (
+    matchDate: string,
+    registrationId: string,
+    userId: string | null
+  ) => {
+    setBusyKey(`rem-${matchDate}-${registrationId}`);
     try {
       const { data, error } = await supabase.rpc('admin_remove_registration', {
         p_match_date: matchDate,
         p_target_user_id: userId,
+        p_registration_id: registrationId,
       });
       if (error) throw error;
       const res = data as RpcActionResponse;
@@ -219,7 +225,9 @@ export function AdminPanel({
           <div className="days-list">
             {days.map((day) => {
               const allPlayers = [...day.match1Players, ...day.match2Players];
-              const registeredIds = new Set(allPlayers.map((p) => p.userId));
+              const registeredIds = new Set(
+                allPlayers.map((p) => p.userId).filter((id): id is string => Boolean(id))
+              );
               const availableToAdd = activeUsers.filter(
                 (u) => !registeredIds.has(u.id)
               );
@@ -297,17 +305,27 @@ export function AdminPanel({
                             <tr key={player.registrationId}>
                               <td>{player.position}</td>
                               <td>Partido {player.matchNumber}</td>
-                              <td>{player.fullName}</td>
+                              <td>
+                                {player.fullName}
+                                {player.registeredByName &&
+                                player.registeredBy !== player.userId
+                                  ? ` (por ${player.registeredByName})`
+                                  : ''}
+                              </td>
                               <td>
                                 <button
                                   type="button"
                                   className="btn-small btn-small-danger"
                                   disabled={
                                     busyKey ===
-                                    `rem-${day.date}-${player.userId}`
+                                    `rem-${day.date}-${player.registrationId}`
                                   }
                                   onClick={() =>
-                                    handleRemovePlayer(day.date, player.userId)
+                                    handleRemovePlayer(
+                                      day.date,
+                                      player.registrationId,
+                                      player.userId
+                                    )
                                   }
                                 >
                                   Quitar
@@ -352,6 +370,7 @@ export function AdminPanel({
                 <thead>
                   <tr>
                     <th>Nombre y apellidos</th>
+                    <th>Teléfono</th>
                     <th>Correo</th>
                     <th>Rol</th>
                     <th>Estado</th>
@@ -366,6 +385,7 @@ export function AdminPanel({
                         <td>
                           {u.first_name} {u.last_name}
                         </td>
+                        <td>{formatPhoneDisplay(u.phone)}</td>
                         <td>{u.email}</td>
                         <td>{u.role === 'admin' ? 'Administrador' : 'Jugador'}</td>
                         <td>
